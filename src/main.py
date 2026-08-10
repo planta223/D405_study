@@ -1,85 +1,80 @@
+"""
+D405 Study Main
+
+역할:
+1. D405 스트리밍 시작
+2. RGB / 정렬된 Depth 프레임 취득
+3. Camera intrinsic K 생성
+4. 중앙 픽셀의 Depth 및 3D 좌표 확인
+5. RGB / Depth 영상 시각화
+6. 현재 프레임 저장
+"""
+
 import cv2
-import numpy as np
-import pyrealsense2 as rs
+
+from camera import D405Camera
+from geometry import (
+    make_camera_matrix,
+    deproject_manual,
+    deproject_sdk,
+)
+from visualization import show_frames
+from data_save import save_frame
 
 
 def main() -> None:
     # ---------------------------------------------------------
-    # 1. RealSense 파이프라인 및 설정 생성
+    # 1. D405 카메라 객체 생성 및 스트리밍 시작
     # ---------------------------------------------------------
-    pipeline = rs.pipeline()
-    config = rs.config()
+    camera = D405Camera()
+    camera.start()
 
-    # Depth / Color 스트림 활성화
-    config.enable_stream(rs.stream.depth)
-    config.enable_stream(rs.stream.color)
+    # 저장할 프레임 번호
+    frame_id = 0
 
-    # ---------------------------------------------------------
-    # 2. 카메라 스트리밍 시작
-    # ---------------------------------------------------------
-    profile = pipeline.start(config)
-
-    # ---------------------------------------------------------
-    # 3. Depth 카메라 내부 파라미터 확인
-    # ---------------------------------------------------------
-    depth_stream = profile.get_stream(rs.stream.depth)
-    depth_profile = depth_stream.as_video_stream_profile()
-    intr = depth_profile.get_intrinsics()
-
-    fx = intr.fx
-    fy = intr.fy
-    cx = intr.ppx
-    cy = intr.ppy
-
-    print("=== Depth Camera Intrinsic ===")
-    print(f"fx = {fx}")
-    print(f"fy = {fy}")
-    print(f"cx = {cx}")
-    print(f"cy = {cy}")
-
-    # 카메라 내부행렬 K
-    K = np.array(
-        [
-            [fx, 0.0, cx],
-            [0.0, fy, cy],
-            [0.0, 0.0, 1.0],
-        ],
-        dtype=np.float64,
-    )
-
-    print("\nK =")
-    print(K)
-
-    # ---------------------------------------------------------
-    # 4. Depth scale 확인
-    # ---------------------------------------------------------
-    depth_sensor = profile.get_device().first_depth_sensor()
-    depth_scale = depth_sensor.get_depth_scale()
-
-    print(f"\nDepth scale = {depth_scale} m/unit")
-    print()
+    # Camera intrinsic은 처음 한 번만 출력하기 위한 플래그
+    intrinsic_printed = False
 
     try:
         while True:
             # -------------------------------------------------
-            # 5. 새로운 프레임 묶음 수신
+            # 2. RGB / 정렬된 Depth 프레임 취득
+            #
+            # 반환값:
+            # color_image : RGB NumPy 배열
+            # depth_image : uint16 Depth NumPy 배열
+            # depth_frame : RealSense Depth frame 객체
+            # intrinsics  : 현재 정렬된 Depth의 camera intrinsic
             # -------------------------------------------------
-            frames = pipeline.wait_for_frames()
+            result = camera.get_aligned_frames()
 
-            depth_frame = frames.get_depth_frame()
-            color_frame = frames.get_color_frame()
-
-            if not depth_frame or not color_frame:
+            if result is None:
                 continue
 
-            # -------------------------------------------------
-            # 6. RealSense frame -> NumPy 배열
-            # -------------------------------------------------
-            depth_image = np.asanyarray(depth_frame.get_data())
-            color_image = np.asanyarray(color_frame.get_data())
+            (
+                color_image,
+                depth_image,
+                depth_frame,
+                intrinsics,
+            ) = result
 
             # -------------------------------------------------
-            # 7. 중앙 픽셀 위치 계산
+            # 3. Camera intrinsic matrix K 생성
+            # -------------------------------------------------
+            K = make_camera_matrix(intrinsics)
+
+            # K는 매 프레임 출력할 필요가 없으므로
+            # 프로그램 시작 후 한 번만 출력
+            if not intrinsic_printed:
+                print()
+                print("=== Camera Intrinsic K ===")
+                print(K)
+                print()
+
+                intrinsic_printed = True
+
+            # -------------------------------------------------
+            # 4. 현재 Depth 영상의 중앙 픽셀 좌표 계산
             # -------------------------------------------------
             height, width = depth_image.shape
 
@@ -87,103 +82,93 @@ def main() -> None:
             v = height // 2
 
             # -------------------------------------------------
-            # 8. 중앙 픽셀의 raw depth 값
+            # 5. 중앙 픽셀의 raw Depth 값 취득
+            #
+            # depth_image에는 uint16 raw Depth 값이 저장됨
             # -------------------------------------------------
             raw_depth = depth_image[v, u]
 
             # -------------------------------------------------
-            # 9. 중앙 픽셀의 실제 거리 [m]
+            # 6. 중앙 픽셀의 실제 거리 [m] 취득
+            #
+            # RealSense SDK가 raw Depth와 depth scale을 이용해
+            # meter 단위 거리로 변환
             # -------------------------------------------------
             z = depth_frame.get_distance(u, v)
 
             # -------------------------------------------------
-            # 10. 직접 수식으로 3D 좌표 계산
+            # 7. 2D Pixel → 3D Point 변환
             # -------------------------------------------------
             if z > 0:
-                # 핀홀 카메라 모델 기반 deprojection
-                x_manual = (u - cx) * z / fx
-                y_manual = (v - cy) * z / fy
-                z_manual = z
-
-                # -------------------------------------------------
-                # 11. RealSense SDK 함수로 3D 좌표 계산
-                # -------------------------------------------------
-                point_sdk = rs.rs2_deproject_pixel_to_point(
-                    intr,
-                    [u, v],
+                # 직접 핀홀 카메라 모델을 이용한 계산
+                point_manual = deproject_manual(
+                    u,
+                    v,
                     z,
+                    intrinsics,
                 )
 
-                x_sdk = point_sdk[0]
-                y_sdk = point_sdk[1]
-                z_sdk = point_sdk[2]
+                # RealSense SDK를 이용한 계산
+                point_sdk = deproject_sdk(
+                    u,
+                    v,
+                    z,
+                    intrinsics,
+                )
 
                 # -------------------------------------------------
-                # 12. 결과 출력
+                # 현재 측정값 출력
                 # -------------------------------------------------
                 print(
                     f"raw={raw_depth:5d} | "
-                    f"distance={z:.3f} m | "
-                    f"manual=({x_manual:.3f}, "
-                    f"{y_manual:.3f}, "
-                    f"{z_manual:.3f}) | "
-                    f"sdk=({x_sdk:.3f}, "
-                    f"{y_sdk:.3f}, "
-                    f"{z_sdk:.3f})",
-                    end="\r",
-                )
-
-            else:
-                print(
-                    f"raw={raw_depth:5d} | invalid depth",
+                    f"Z={z:.3f} m | "
+                    f"manual="
+                    f"({point_manual[0]:.3f}, "
+                    f"{point_manual[1]:.3f}, "
+                    f"{point_manual[2]:.3f}) | "
+                    f"sdk="
+                    f"({point_sdk[0]:.3f}, "
+                    f"{point_sdk[1]:.3f}, "
+                    f"{point_sdk[2]:.3f})",
                     end="\r",
                 )
 
             # -------------------------------------------------
-            # 13. Depth 영상 시각화
+            # 8. RGB / Depth 영상 시각화
             # -------------------------------------------------
-            depth_colormap = cv2.applyColorMap(
-                cv2.convertScaleAbs(
-                    depth_image,
-                    alpha=0.03,
-                ),
-                cv2.COLORMAP_JET,
-            )
-
-            # -------------------------------------------------
-            # 14. 중앙 픽셀 표시
-            # -------------------------------------------------
-            cv2.circle(
+            show_frames(
                 color_image,
-                (u, v),
-                5,
-                (0, 0, 255),
-                -1,
-            )
-
-            cv2.circle(
-                depth_colormap,
-                (u, v),
-                5,
-                (255, 255, 255),
-                -1,
+                depth_image,
+                u,
+                v,
             )
 
             # -------------------------------------------------
-            # 15. 화면 출력
+            # 9. 키보드 입력 처리
+            #
+            # q : 프로그램 종료
+            # s : 현재 RGB / Depth / K 저장
             # -------------------------------------------------
-            cv2.imshow("D405 Color", color_image)
-            cv2.imshow("D405 Depth", depth_colormap)
+            key = cv2.waitKey(1) & 0xFF
 
-            # q를 누르면 종료
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            if key == ord("q"):
                 break
+
+            if key == ord("s"):
+                save_frame(
+                    color_image,
+                    depth_image,
+                    K,
+                    frame_id,
+                )
+
+                frame_id += 1
 
     finally:
         # -----------------------------------------------------
-        # 16. 카메라 및 OpenCV 창 종료
+        # 10. 프로그램 종료 처리
         # -----------------------------------------------------
-        pipeline.stop()
+        camera.stop()
         cv2.destroyAllWindows()
 
 

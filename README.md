@@ -20,10 +20,11 @@ Intel RealSense D405를 이용한 RGB-D 데이터 취득 및 기초 실습 프�
 ```text
 d405_study/
 ├── src/
-│   └── main.py
+│   └── python modules
 ├── data/
 │   ├── rgb/
-│   └── depth/
+│   ├── depth/
+│   └── intrinsic/
 ├── doc/
 │   ├── requirements.txt
 │   └── memo.txt

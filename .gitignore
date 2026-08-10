@@ -9,4 +9,11 @@ __pycache__/
 .vscode/
 
 # Generated RGB-D data
-data/
+data/depth/*
+!data/depth/.gitkeep
+
+data/rgb/*
+!data/rgb/.gitkeep
+
+data/intrinsic/*
+!data/intrinsic/.gitkeep
