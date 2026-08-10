@@ -24,7 +24,10 @@ d405_study/
 ├── data/
 │   ├── rgb/
 │   └── depth/
-├── requirements.txt
+├── doc/
+│   ├── requirements.txt
+│   └── memo.txt
+├── .gitignore
 └── README.md
 ```
 
