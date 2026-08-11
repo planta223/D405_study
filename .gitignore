@@ -27,3 +27,6 @@ data/mask/*
 models/*
 !models/sample_print.stl
 !models/sample.ply
+
+# recorded data
+data/sequence01/*
