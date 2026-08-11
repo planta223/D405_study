@@ -8,7 +8,9 @@ __pycache__/
 # VS Code
 .vscode/
 
-# Generated RGB-D data
+
+
+# Generated data
 data/depth/*
 !data/depth/.gitkeep
 
@@ -17,3 +19,10 @@ data/rgb/*
 
 data/intrinsic/*
 !data/intrinsic/.gitkeep
+
+data/mask/*
+!data/mask/.gitkeep
+
+# 3D CAD model data
+models/*
+!models/.gitkeep

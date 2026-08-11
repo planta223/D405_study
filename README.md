@@ -1,6 +1,6 @@
 # D405 Study
 
-Intel RealSense D405를 이용한 RGB-D 데이터 취득 및 기초 실습 프로젝트.
+Intel RealSense D405 기반 RGB-D 데이터 취득 및 FoundationPose 입력 준비 프로젝트.
 
 ## Environment
 
@@ -24,19 +24,28 @@ d405_study/
 ├── data/
 │   ├── rgb/
 │   ├── depth/
-│   └── intrinsic/
+│   ├── intrinsic/
+│   └── mask/
+├── models/
+│   ├── obj_06.ply
+│   └── obj_06_print.stl
 ├── doc/
 │   ├── requirements.txt
 │   └── memo.txt
+├── capture_rgbd.py
+├── generate_mask.py
+├── run_foundationpose.py
 ├── .gitignore
 └── README.md
 ```
 
 ## Goals
 
-- RGB stream 확인
-- Depth stream 확인
-- Camera intrinsic 확인
-- Depth scale 확인
-- RGB / Depth frame 저장
+- RGB / Depth stream 확인
+- Depth → RGB alignment
+- Camera intrinsic 및 Depth scale 확인
+- RGB / Depth / K 저장
+- Binary object mask 생성
+- T-LESS CAD model 준비
 - FoundationPose 입력 데이터 구성
+- T-LESS object 6D pose 추정
