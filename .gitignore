@@ -12,17 +12,18 @@ __pycache__/
 
 # Generated data
 data/depth/*
-!data/depth/.gitkeep
+!data/depth/sample.png
 
 data/rgb/*
-!data/rgb/.gitkeep
+!data/depth/sample.png
 
 data/intrinsic/*
-!data/intrinsic/.gitkeep
+!data/intrinsic/sample.png
 
 data/mask/*
-!data/mask/.gitkeep
+!data/mask/sample.png
 
 # 3D CAD model data
 models/*
-!models/.gitkeep
+!models/sample_print.stl
+!models/sample.ply
