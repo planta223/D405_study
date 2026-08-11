@@ -27,8 +27,8 @@ d405_study/
 │   ├── intrinsic/
 │   └── mask/
 ├── models/
-│   ├── obj_06.ply
-│   └── obj_06_print.stl
+│   ├── sample.ply
+│   └── sample_print.stl
 ├── doc/
 │   ├── requirements.txt
 │   └── memo.txt
