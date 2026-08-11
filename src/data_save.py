@@ -8,7 +8,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from config import (
+from .config import (
     RGB_OUTPUT_DIR,
     DEPTH_OUTPUT_DIR,
     INTRINSIC_OUTPUT_DIR,
@@ -17,9 +17,10 @@ from config import (
 
 def create_output_directories() -> None:
     """
-    RGB / Depth / Intrinsic 데이터 저장 디렉터리를 생성한다.
+    RGB / Depth / Intrinsic 데이터 저장
+    디렉터리를 생성한다.
 
-    이미 디렉터리가 존재하는 경우에는 그대로 사용한다.
+    이미 존재하면 그대로 사용한다.
     """
 
     Path(RGB_OUTPUT_DIR).mkdir(
@@ -41,34 +42,28 @@ def create_output_directories() -> None:
 def save_frame(
     color_image: np.ndarray,
     depth_image: np.ndarray,
-    K: np.ndarray,
     frame_id: int,
 ) -> None:
     """
-    현재 RGB-D 프레임과 카메라 내부행렬 K를 파일로 저장한다.
+    현재 RGB / Depth 프레임을 저장한다.
 
-    저장 형식
-    ----------
     RGB:
-        PNG 이미지
+        PNG
 
     Depth:
-        uint16 원본 Depth PNG
-
-    Intrinsic:
-        3x3 카메라 내부행렬 K를 TXT 파일로 저장
+        uint16 PNG
     """
 
-    # ---------------------------------------------------------
-    # 데이터 저장 디렉터리 확인 및 생성
-    # ---------------------------------------------------------
     create_output_directories()
 
     # ---------------------------------------------------------
-    # RGB 이미지 저장
+    # RGB 저장
     #
-    # RealSense에서 받은 영상은 RGB 순서이고,
-    # OpenCV의 imwrite는 BGR 순서를 기준으로 사용하므로 변환한다.
+    # RealSense:
+    # RGB
+    #
+    # OpenCV imwrite:
+    # BGR
     # ---------------------------------------------------------
     color_bgr = cv2.cvtColor(
         color_image,
@@ -86,10 +81,10 @@ def save_frame(
     )
 
     # ---------------------------------------------------------
-    # Depth 이미지 저장
+    # Depth 저장
     #
     # 시각화용 colormap이 아니라
-    # 실제 센서에서 얻은 uint16 Depth 원본을 저장한다.
+    # 실제 uint16 Depth 값을 저장한다.
     # ---------------------------------------------------------
     depth_path = (
         Path(DEPTH_OUTPUT_DIR)
@@ -101,14 +96,27 @@ def save_frame(
         depth_image,
     )
 
-    # ---------------------------------------------------------
-    # Camera intrinsic K 저장
-    #
-    # 3x3 카메라 내부행렬을 txt 형식으로 저장한다.
-    # ---------------------------------------------------------
+    print()
+    print("Frame saved:")
+    print(rgb_path)
+    print(depth_path)
+
+
+def save_intrinsic(
+    K: np.ndarray,
+) -> None:
+    """
+    Camera intrinsic matrix K를 저장한다.
+
+    같은 카메라 / 해상도 / 스트림 설정에서는
+    K가 고정이므로 프로그램 시작 시 1회 저장한다.
+    """
+
+    create_output_directories()
+
     intrinsic_path = (
         Path(INTRINSIC_OUTPUT_DIR)
-        / f"K_{frame_id:06d}.txt"
+        / "K.txt"
     )
 
     np.savetxt(
@@ -117,11 +125,6 @@ def save_frame(
         fmt="%.8f",
     )
 
-    # ---------------------------------------------------------
-    # 저장 결과 출력
-    # ---------------------------------------------------------
     print()
-    print("Frame saved:")
-    print(rgb_path)
-    print(depth_path)
+    print("Intrinsic saved:")
     print(intrinsic_path)

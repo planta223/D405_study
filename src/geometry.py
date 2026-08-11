@@ -2,8 +2,8 @@
 Camera geometry 관련 함수
 
 역할:
-2D pixel + Depth
-→ Camera coordinate의 3D point 변환
+1. Camera intrinsic matrix K 생성
+2. 2D pixel + Depth → Camera coordinate 3D point 변환
 """
 
 import numpy as np
@@ -15,7 +15,7 @@ def make_camera_matrix(
 ) -> np.ndarray:
     """
     RealSense intrinsic 객체로부터
-    3x3 camera intrinsic matrix K 생성
+    3×3 camera intrinsic matrix K를 생성한다.
     """
 
     fx = intrinsics.fx
@@ -35,7 +35,6 @@ def make_camera_matrix(
     return K
 
 
-# 직접 구현한 역투영함수
 def deproject_manual(
     u: int,
     v: int,
@@ -43,14 +42,14 @@ def deproject_manual(
     intrinsics: rs.intrinsics,
 ) -> np.ndarray:
     """
-    핀홀 카메라 모델을 직접 이용해
+    핀홀 카메라 모델을 이용하여
 
     pixel (u, v)
     + depth Z
 
-    → camera coordinate (X, Y, Z)
+    → Camera coordinate (X, Y, Z)
 
-    로 변환
+    로 직접 변환한다.
     """
 
     fx = intrinsics.fx
@@ -67,7 +66,6 @@ def deproject_manual(
     )
 
 
-# RealSense SDK의 역투영함수
 def deproject_sdk(
     u: int,
     v: int,
@@ -75,7 +73,14 @@ def deproject_sdk(
     intrinsics: rs.intrinsics,
 ) -> np.ndarray:
     """
-    RealSense SDK의 deprojection 함수 사용
+    RealSense SDK를 사용하여
+
+    pixel (u, v)
+    + depth Z
+
+    → Camera coordinate (X, Y, Z)
+
+    로 변환한다.
     """
 
     point = rs.rs2_deproject_pixel_to_point(

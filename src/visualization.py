@@ -5,19 +5,19 @@ RGB / Depth 영상 시각화
 import cv2
 import numpy as np
 
-from config import DEPTH_COLORMAP_ALPHA
+from .config import DEPTH_COLORMAP_ALPHA
 
 
 def make_depth_colormap(
     depth_image: np.ndarray,
 ) -> np.ndarray:
     """
-    uint16 depth image를
-    사람이 보기 쉬운 컬러 이미지로 변환
+    uint16 Depth 이미지를 사람이 보기 쉬운
+    컬러 이미지로 변환한다.
 
     주의:
-    이 영상은 시각화용이며,
-    실제 depth 데이터가 아님.
+    반환 영상은 시각화용이며
+    실제 Depth 데이터가 아니다.
     """
 
     depth_8bit = cv2.convertScaleAbs(
@@ -40,7 +40,10 @@ def show_frames(
     v: int,
 ) -> None:
     """
-    Color / Depth 화면 표시
+    RGB / Depth 영상을 화면에 표시한다.
+
+    (u, v):
+        현재 확인할 pixel 위치
     """
 
     # ---------------------------------------------------------
@@ -51,12 +54,15 @@ def show_frames(
         cv2.COLOR_RGB2BGR,
     )
 
+    # ---------------------------------------------------------
+    # Depth 시각화 영상 생성
+    # ---------------------------------------------------------
     depth_colormap = make_depth_colormap(
         depth_image
     )
 
     # ---------------------------------------------------------
-    # 현재 측정 pixel 표시
+    # 현재 확인 pixel 표시
     # ---------------------------------------------------------
     cv2.circle(
         color_bgr,
@@ -74,6 +80,9 @@ def show_frames(
         -1,
     )
 
+    # ---------------------------------------------------------
+    # 화면 출력
+    # ---------------------------------------------------------
     cv2.imshow(
         "D405 Color",
         color_bgr,

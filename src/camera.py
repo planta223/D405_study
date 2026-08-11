@@ -12,7 +12,11 @@ Intel RealSense D405 인터페이스
 import numpy as np
 import pyrealsense2 as rs
 
-from config import IMAGE_WIDTH, IMAGE_HEIGHT, FPS
+from .config import (
+    IMAGE_WIDTH,
+    IMAGE_HEIGHT,
+    FPS,
+)
 
 
 class D405Camera:
@@ -49,22 +53,26 @@ class D405Camera:
         )
 
         # -----------------------------------------------------
-        # Depth를 Color pixel coordinate에 맞추기 위한 객체
-        # Color 영상과 Depth 영상이 서로 다른 카메라/광학계에서 만들어지기 때문에 필요하다.
-        # D405에서는 RGB 영상이 왼쪽 스테레오 센서 쪽에서 생성된다.
+        # Depth → Color alignment
+        #
+        # RGB와 Depth가 서로 다른 영상 좌표계를 가지므로
+        # Depth를 Color pixel coordinate에 맞춘다.
         # -----------------------------------------------------
-        self.align = rs.align(rs.stream.color)
+        self.align = rs.align(
+            rs.stream.color
+        )
 
         self.profile = None
         self.depth_scale = None
-
 
     def start(self) -> None:
         """
         D405 스트리밍 시작
         """
 
-        self.profile = self.pipeline.start(self.config)
+        self.profile = self.pipeline.start(
+            self.config
+        )
 
         # -----------------------------------------------------
         # Depth scale 취득
@@ -77,12 +85,14 @@ class D405Camera:
             .first_depth_sensor()
         )
 
-        self.depth_scale = depth_sensor.get_depth_scale()
-
-        print(
-            f"Depth scale = {self.depth_scale} m/unit"
+        self.depth_scale = (
+            depth_sensor.get_depth_scale()
         )
 
+        print(
+            f"Depth scale = "
+            f"{self.depth_scale} m/unit"
+        )
 
     def stop(self) -> None:
         """
@@ -90,7 +100,6 @@ class D405Camera:
         """
 
         self.pipeline.stop()
-
 
     def get_aligned_frames(self):
         """
@@ -106,10 +115,11 @@ class D405Camera:
             Color 좌표계에 정렬된 uint16 Depth 이미지
 
         depth_frame : rs.depth_frame
-            Color 좌표계에 정렬된 RealSense Depth frame 객체
+            Color 좌표계에 정렬된 Depth frame
 
         intrinsics : rs.intrinsics
-            정렬된 Depth 이미지에 대응하는 camera intrinsic
+            정렬된 Depth 이미지에 대응하는
+            camera intrinsic
         """
 
         # -----------------------------------------------------
@@ -120,7 +130,9 @@ class D405Camera:
         # -----------------------------------------------------
         # Depth → Color alignment
         # -----------------------------------------------------
-        aligned_frames = self.align.process(frames)
+        aligned_frames = self.align.process(
+            frames
+        )
 
         aligned_depth_frame = (
             aligned_frames.get_depth_frame()
@@ -130,7 +142,10 @@ class D405Camera:
             aligned_frames.get_color_frame()
         )
 
-        if not aligned_depth_frame or not color_frame:
+        if (
+            not aligned_depth_frame
+            or not color_frame
+        ):
             return None
 
         # -----------------------------------------------------
@@ -145,7 +160,7 @@ class D405Camera:
         )
 
         # -----------------------------------------------------
-        # Alignment 이후 pixel coordinate에 대응하는 intrinsic
+        # Alignment 이후 영상에 대응하는 intrinsic
         # -----------------------------------------------------
         intrinsics = (
             aligned_depth_frame
